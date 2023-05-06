@@ -80,15 +80,6 @@ def create_train_validation_loaders(
     if not (0.0 < validation_ratio < 1.0):
         raise ValueError(validation_ratio)
 
-    # TODO:
-    #  Create two DataLoader instances, dl_train and dl_valid.
-    #  They should together represent a train/validation split of the given
-    #  dataset. Make sure that:
-    #  1. Validation set size is validation_ratio * total number of samples.
-    #  2. No sample is in both datasets. You can select samples at random
-    #     from the dataset.
-    #  Hint: you can specify a Sampler class for the `DataLoader` instance
-    #  you create.
     N = len(dataset)
     N_valid = math.floor(N * validation_ratio)
     N_train = N - N_valid
@@ -110,3 +101,46 @@ def create_train_validation_loaders(
         )
 
     return dl_train, dl_valid
+
+def create_kfold_loaders(dataset: Dataset, k: int, batch_size=100, num_workers=2):
+    """
+    Splits a dataset into k folds, returning a list of tuples. Each tuple
+    contains a train DataLoader and a validation DataLoader.
+    :param dataset: The dataset to split.
+    :param k: The number of folds to create.
+    :param batch_size: Batch size the loaders will return from each set.
+    :param num_workers: Number of workers to pass to dataloader init.
+    :return: A list of k tuples, each containing a train and validation DataLoader.
+    """
+    N = len(dataset)
+    fold_size = N // k
+
+    # shuffle indices
+    indices = torch.randperm(N)
+
+    # create k-fold splits
+    folds = []
+    for i in range(k):
+        # get indices for train and test sets
+        start = i * fold_size
+        end = (i + 1) * fold_size if i < k - 1 else N
+        valid_indices = indices[start:end]
+        train_indices = torch.cat([indices[:start], indices[end:]])
+
+        # create dataloaders
+        dl_train = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            sampler=IndicedSampler(dataset, train_indices)
+        )
+        dl_valid = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            sampler=IndicedSampler(dataset, valid_indices)
+        )
+        folds.append((dl_train, dl_valid))
+
+    return folds
+
