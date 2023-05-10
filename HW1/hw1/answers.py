@@ -47,14 +47,14 @@ An equation: $e^{i\pi} -1 = 0$
 
 part2_q2 = r"""
 **Your answer:**
+Avoid overfitting in both cases.
 
+1. When a model is trained on the entire train-set and its performance is evaluated on the same set, it may lead to overfitting, where the model **weights** are tailored to the train-set but fails to generalize to unseen data.
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+2. When selecting the best model based on test-set accuracy, there is a risk that the model is overly tailored to the training and test data.
+If the model is repeatedly trained on the same data and evaluated on the same data. The chosen **hyperparameters** performs well on the test set, but not necessarily on new, unseen data.
+
+In contrast, k-fold CV helps in avoiding overfitting by providing a more realistic estimate of the model's overall performance (weights and hyperparameters)  on unseen data.
 
 """
 
@@ -66,13 +66,9 @@ An equation: $e^{i\pi} -1 = 0$
 part3_q1 = r"""
 **Your answer:**
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+The selection of $\Delta > 0$ in the SVM loss function is arbitrary because the regularization term controls the model's complexity, which affects the margin $\Delta$.
+The regularization term encourages a simpler decision boundary, reducing the number of possible boundaries.
+Different values of $\Delta$ may be suitable for different datasets or applications, but the regularization term ensures that the model can generalize well to unseen data.
 
 """
 
