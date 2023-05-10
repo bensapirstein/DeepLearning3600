@@ -123,7 +123,6 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
     """
 
     accuracies = []
-
     fold_loaders = dataloaders.create_kfold_loaders(ds_train, num_folds)
 
     for i, k in enumerate(k_choices):
@@ -135,6 +134,7 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
         #  You can use your train/validation splitter from part 1 (note that
         #  then it won't be exactly k-fold CV since it will be a
         #  random split each iteration), or implement something else.
+        accuracies.append([])
 
         # ====== YOUR CODE: ======
         for j in range(num_folds):
@@ -143,8 +143,6 @@ def find_best_k(ds_train: Dataset, k_choices, num_folds):
             x_val, y_val = dataloader_utils.flatten(dl_val)
             y_pred = model.predict(x_val)
             acc = accuracy(y_val, y_pred)
-            if j == 0:
-                accuracies.append([])
             accuracies[i].append(acc)
         # ========================
 
