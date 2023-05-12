@@ -32,7 +32,7 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
 
         y_pred = None
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        y_pred = X @ self.weights_.T
         # ========================
 
         return y_pred
@@ -51,7 +51,9 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
 
         w_opt = None
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        reg = X.shape[0] * self.reg_lambda * np.identity(X.shape[1])
+        reg[0, 0] = 0 
+        w_opt = np.linalg.inv(X.T @ X + reg) @ X.T @ y
         # ========================
 
         self.weights_ = w_opt
@@ -77,7 +79,8 @@ def fit_predict_dataframe(
     """
     # TODO: Implement according to the docstring description.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    x = df.drop(columns=target_name) if feature_names is None else df.drop(columns=target_name)[feature_names]
+    y_pred = model.fit_predict(x, df[target_name])
     # ========================
     return y_pred
 
@@ -100,9 +103,8 @@ class BiasTrickTransformer(BaseEstimator, TransformerMixin):
 
         xb = None
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        xb = np.hstack((np.ones((X.shape[0], 1)), X))
         # ========================
-
         return xb
 
 
@@ -117,7 +119,6 @@ class BostonFeaturesTransformer(BaseEstimator, TransformerMixin):
         # TODO: Your custom initialization, if needed
         # Add any hyperparameters you need and save them as above
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
         # ========================
 
     def fit(self, X, y=None):
@@ -139,7 +140,7 @@ class BostonFeaturesTransformer(BaseEstimator, TransformerMixin):
 
         X_transformed = None
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        X_transformed = PolynomialFeatures(self.degree).fit_transform(X)
         # ========================
 
         return X_transformed
@@ -163,7 +164,10 @@ def top_correlated_features(df: DataFrame, target_feature, n=5):
     # TODO: Calculate correlations with target and sort features by it
 
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    corrs_target = df.corr().abs()[target_feature]
+    sort_indices = np.argsort(corrs_target)[::-1]
+    top_n_features = corrs_target.index[sort_indices[1:n+1]]
+    top_n_corr = corrs_target[sort_indices[1:n+1]].values
     # ========================
 
     return top_n_features, top_n_corr
@@ -179,7 +183,7 @@ def mse_score(y: np.ndarray, y_pred: np.ndarray):
 
     # TODO: Implement MSE using numpy.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    mse = np.sum((y - y_pred) ** 2)/len(y)
     # ========================
     return mse
 
@@ -194,7 +198,7 @@ def r2_score(y: np.ndarray, y_pred: np.ndarray):
 
     # TODO: Implement R^2 using numpy.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    r2 = 1 - (np.sum((y - y_pred) ** 2)/np.sum((y - np.mean(y)) ** 2))
     # ========================
     return r2
 
@@ -227,7 +231,6 @@ def cv_best_hyperparams(
     #  - You can use MSE or R^2 as a score.
 
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
-    # ========================
 
+    # ========================
     return best_params

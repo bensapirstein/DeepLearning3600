@@ -144,10 +144,7 @@ class LinearClassifier(object):
         #  The output shape should be (n_classes, C, H, W).
 
         # ====== YOUR CODE: ======
-        if has_bias:
-            w_images = self.weights[1:, :].reshape(self.n_classes, *img_shape)
-        else:
-            w_images = self.weights.reshape(self.n_classes, *img_shape)
+        w_images = self.weights[1:, :].reshape(self.n_classes, *img_shape) if has_bias else self.weights.reshape(self.n_classes, *img_shape)
         # ========================
 
         return w_images
