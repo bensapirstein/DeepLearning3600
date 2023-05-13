@@ -1,5 +1,6 @@
 import numpy as np
 import sklearn
+import itertools # Imported by the group
 from pandas import DataFrame
 from typing import List
 from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
@@ -7,7 +8,6 @@ from sklearn.utils import check_array
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.utils.validation import check_X_y, check_is_fitted
-
 
 class LinearRegressor(BaseEstimator, RegressorMixin):
     """
@@ -34,7 +34,6 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
         # ====== YOUR CODE: ======
         y_pred = X @ self.weights_.T
         # ========================
-
         return y_pred
 
     def fit(self, X, y):
@@ -55,7 +54,6 @@ class LinearRegressor(BaseEstimator, RegressorMixin):
         reg[0, 0] = 0 
         w_opt = np.linalg.inv(X.T @ X + reg) @ X.T @ y
         # ========================
-
         self.weights_ = w_opt
         return self
 
@@ -142,7 +140,6 @@ class BostonFeaturesTransformer(BaseEstimator, TransformerMixin):
         # ====== YOUR CODE: ======
         X_transformed = PolynomialFeatures(self.degree).fit_transform(X)
         # ========================
-
         return X_transformed
 
 
@@ -166,11 +163,8 @@ def top_correlated_features(df: DataFrame, target_feature, n=5):
     # ====== YOUR CODE: ======
     corrs_target = df.corr().abs()[target_feature]
     sort_indices = np.argsort(corrs_target)[::-1]
-    top_n_features = corrs_target.index[sort_indices[1:n+1]]
-    top_n_corr = corrs_target[sort_indices[1:n+1]].values
     # ========================
-
-    return top_n_features, top_n_corr
+    return corrs_target.index[sort_indices[1:n+1]], corrs_target[sort_indices[1:n+1]].values
 
 
 def mse_score(y: np.ndarray, y_pred: np.ndarray):
@@ -183,9 +177,9 @@ def mse_score(y: np.ndarray, y_pred: np.ndarray):
 
     # TODO: Implement MSE using numpy.
     # ====== YOUR CODE: ======
-    mse = np.sum((y - y_pred) ** 2)/len(y)
+    # Returned directly
     # ========================
-    return mse
+    return np.sum((y - y_pred) ** 2)/len(y)
 
 
 def r2_score(y: np.ndarray, y_pred: np.ndarray):
@@ -198,9 +192,9 @@ def r2_score(y: np.ndarray, y_pred: np.ndarray):
 
     # TODO: Implement R^2 using numpy.
     # ====== YOUR CODE: ======
-    r2 = 1 - (np.sum((y - y_pred) ** 2)/np.sum((y - np.mean(y)) ** 2))
+    # Returned directly
     # ========================
-    return r2
+    return 1 - (np.sum((y - y_pred) ** 2)/np.sum((y - np.mean(y)) ** 2))
 
 
 def cv_best_hyperparams(
@@ -231,6 +225,22 @@ def cv_best_hyperparams(
     #  - You can use MSE or R^2 as a score.
 
     # ====== YOUR CODE: ======
+    best_results, best_params = None, None
+    KFold = sklearn.model_selection.KFold(n_splits = k_folds)
+    params = model.get_params()
+    degree_range, lambda_range = np.meshgrid(degree_range, lambda_range)
 
+    for degree, reg in zip(degree_range.flatten(), lambda_range.flatten()):
+        model.set_params(**{f"linearregressor__reg_lambda": reg, 
+                        f"bostonfeaturestransformer__degree": degree})
+
+        for train_index, test_index in KFold.split(X):
+            X_train, y_train, X_test, y_test = X[train_index], y[train_index], X[test_index], y[test_index]
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_test)
+            mse = mse_score(y_test, y_pred)
+
+            if best_params is None or mse < best_results:
+                best_params, best_results = model.get_params(), mse
     # ========================
     return best_params

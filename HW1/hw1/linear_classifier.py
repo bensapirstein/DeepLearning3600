@@ -48,7 +48,6 @@ class LinearClassifier(object):
         class_scores = x @ self.weights
         y_pred = torch.argmax(class_scores, dim=1)
         # ========================
-
         return y_pred, class_scores
 
     @staticmethod
@@ -67,10 +66,9 @@ class LinearClassifier(object):
 
         acc = None
         # ====== YOUR CODE: ======
-        acc = (y == y_pred).sum() / y.shape[0]
+        acc = ((y == y_pred).sum() / y.shape[0]) * 100
         # ========================
-
-        return acc * 100
+        return acc
 
     def train(
         self,
@@ -114,8 +112,7 @@ class LinearClassifier(object):
             train_res.accuracy.append(total_correct / len(dl_train.dataset))
             train_res.loss.append(average_loss / len(dl_train.dataset))
 
-            total_correct = 0
-            average_loss = 0
+            total_correct, average_loss = 0, 0
             for x, y in dl_valid:
                 y_pred, class_scores = self.predict(x)
                 loss = loss_fn.loss(x, y, class_scores, y_pred) + weight_decay / 2 * torch.norm(self.weights) ** 2
