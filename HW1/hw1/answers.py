@@ -17,7 +17,7 @@ In this case, the small train set may not be representative of the distribution 
 3. True. The test set is used to evaluate the final model's performance after all the model selection and hyperparameter tuning is done.
 During cross-validation, the data is split into k folds, and k-1 folds are used for training and the remaining fold is used for validation.
 The test-set is held out for the final evaluation and should not be used for model selection or hyperparameter tuning to prevent data leakage.
-4. 
+4. True. We can use splits to approximate the generalization error. 
 """
 
 part1_q2 = r"""
@@ -33,26 +33,15 @@ This approach ensures that the model is not overfitting to the test set and prov
 # Part 2 answers
 
 part2_q1 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+Increasing the value of k can lead to improved generalization for unseen data, but this depends on the k. For a small k, the model may overfit as it is sensitive to noise and outliers. Overfitting can impact performance on unseen data because the model may be using noise from the training data to make decisions on unseen data. As k increases the model is better able to handle noise and outlier because more neighbors are used to make a prediction. When more neighbors are used, the generalization is better as the model is less likely to use noise to decide on unseen data. However, when k is too large, the model may start to ignore patterns and meaningful relationships in the data which can also impact performance negatively and underfit.
 """
 
 part2_q2 = r"""
-**Your answer:**
 Avoid overfitting in both cases.
 
 1. When a model is trained on the entire train-set and its performance is evaluated on the same set, it may lead to overfitting, where the model **weights** are tailored to the train-set but fails to generalize to unseen data.
 
-2. When selecting the best model based on test-set accuracy, there is a risk that the model is overly tailored to the training and test data.
-If the model is repeatedly trained on the same data and evaluated on the same data. The chosen **hyperparameters** performs well on the test set, but not necessarily on new, unseen data.
+2. When selecting the best model based on test-set accuracy, there is a risk that the model is overly tailored to the training and test data.If the model is repeatedly trained on the same data and evaluated on the same data. The chosen **hyperparameters** performs well on the test set, but not necessarily on new, unseen data.
 
 In contrast, k-fold CV helps in avoiding overfitting by providing a more realistic estimate of the model's overall performance (weights and hyperparameters)  on unseen data.
 
@@ -64,8 +53,6 @@ In contrast, k-fold CV helps in avoiding overfitting by providing a more realist
 # Part 3 answers
 
 part3_q1 = r"""
-**Your answer:**
-
 The selection of $\Delta > 0$ in the SVM loss function is arbitrary because the regularization term controls the model's complexity, which affects the margin $\Delta$.
 The regularization term encourages a simpler decision boundary, reducing the number of possible boundaries.
 Different values of $\Delta$ may be suitable for different datasets or applications, but the regularization term ensures that the model can generalize well to unseen data.
@@ -73,29 +60,15 @@ Different values of $\Delta$ may be suitable for different datasets or applicati
 """
 
 part3_q2 = r"""
-**Your answer:**
+1. The linear model learns a linear decision boundary and attempts to distinguish between different classes. The model in our case is learning the weights of the data which are scanned handwritten digits represented as pixels with varied intensity (representing how light or dark the pixel is). As the model is learning the weights for each pixel, it assigns weights according to relationships and may put more weight to pixels that make up the border of a digit or the center (for example). This can lead to potential classification errors when images are rotated, or if a digit was written at an angle. This can also cause classification errors between digits that share similarities such as 3 and 8 or 5 and 6. 
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+2. kNN , in general, also tries to identify classes based on a patters in the input data and its features, but kNN does not learn a decision boundary, but runs over many instances and tries to classify them based on their nearest neighbors. 
 """
 
 part3_q3 = r"""
-**Your answer:**
+1. We can see that we converge quickly and that the validation and training loss decrease in the same direction which implies that our learning rate is *good*. When the learning rate is set to a high value, the model converges quickly, but it may only reach a local minimum, which may not have the best performance, and the optimization may miss the mininum. A low learning rate takes longer to converge but it may produce better results.
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+2. Based on the metrics, we can see that as we approach concergence the validation accuracy is lower than training accuracy so there may be some overfitting (slight overfitting).
 """
 
 # ==============
