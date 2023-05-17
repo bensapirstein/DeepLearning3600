@@ -63,6 +63,9 @@ class IndicedSampler(Sampler):
 
     def __iter__(self) -> Iterator[int]:
         return iter(self.indices)
+    
+    def __len__(self):
+        return len(self.indices)
 
 def create_train_validation_loaders(
     dataset: Dataset, validation_ratio, batch_size=100, num_workers=2

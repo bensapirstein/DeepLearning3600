@@ -86,7 +86,6 @@ class LinearClassifier(object):
 
         print("Training", end="")
         for epoch_idx in range(max_epochs):
-            total_correct = 0
             average_loss = 0
 
             # TODO:
@@ -101,26 +100,31 @@ class LinearClassifier(object):
             #     using the weight_decay parameter.
 
             # ====== YOUR CODE: ======
+            mean_acc = 0
             for x, y in dl_train:
                 y_pred, class_scores = self.predict(x)
-                loss = loss_fn.loss(x, y, class_scores, y_pred) + weight_decay / 2 * torch.norm(self.weights) ** 2
+
+                loss = loss_fn(x, y, class_scores, y_pred) + weight_decay / 2 * torch.norm(self.weights) ** 2
                 grad = loss_fn.grad() + weight_decay * self.weights
+
                 self.weights -= learn_rate * grad
-                total_correct += (y == y_pred).sum()
-                average_loss += loss
+                
+                average_loss += loss / len(dl_train)
+                mean_acc += self.evaluate_accuracy(y, y_pred) / len(dl_train)
 
-            train_res.accuracy.append(total_correct / len(dl_train.dataset))
-            train_res.loss.append(average_loss / len(dl_train.dataset))
+            train_res.accuracy.append(mean_acc)
+            train_res.loss.append(average_loss)
 
-            total_correct, average_loss = 0, 0
+            mean_acc, average_loss = 0, 0
             for x, y in dl_valid:
                 y_pred, class_scores = self.predict(x)
-                loss = loss_fn.loss(x, y, class_scores, y_pred) + weight_decay / 2 * torch.norm(self.weights) ** 2
-                total_correct += (y == y_pred).sum()
-                average_loss += loss
+                loss = loss_fn(x, y, class_scores, y_pred) + weight_decay / 2 * torch.norm(self.weights) ** 2
+                
+                average_loss += loss / len(dl_valid)
+                mean_acc += self.evaluate_accuracy(y, y_pred) / len(dl_valid)
 
-            valid_res.accuracy.append(total_correct / len(dl_valid.dataset))
-            valid_res.loss.append(average_loss / len(dl_valid.dataset))
+            valid_res.accuracy.append(mean_acc)
+            valid_res.loss.append(average_loss)
             # ========================
             print(".", end="")
 
