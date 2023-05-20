@@ -9,7 +9,9 @@ math (delimited with $$).
 # Part 1 answers
 
 part1_q1 = r"""
-**Your answer:**
+1. The Jacobian tensor of the output will have the shape (N, out_features, in_features), which in our case is (128, 2048, 1024).
+
+2. Total Memory (in GB) = $\frac{{128 \times 2048 \times 1024 \times 4}}{{1024^3}} = 1GB$
 """
 
 # ==============

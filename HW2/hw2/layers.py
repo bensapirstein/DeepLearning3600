@@ -80,10 +80,7 @@ class LeakyReLU(Layer):
         :return: ReLU of each sample in x.
         """
 
-        # TODO: Implement the LeakyReLU operation.
-        # ====== YOUR CODE: ======
-
-        # ========================
+        out = torch.max(self.alpha * x, x)
 
         self.grad_cache["x"] = x
         return out
@@ -95,10 +92,8 @@ class LeakyReLU(Layer):
         """
         x = self.grad_cache["x"]
 
-        # TODO: Implement gradient w.r.t. the input x
-        # ====== YOUR CODE: ======
-
-        # ========================
+        dx = dout.clone()
+        dx[x < 0] *= self.alpha
 
         return dx
 
@@ -115,9 +110,7 @@ class ReLU(LeakyReLU):
     """
 
     def __init__(self):
-        # ====== YOUR CODE: ======
-
-        # ========================
+        super().__init__(alpha=0)
 
     def __repr__(self):
         return "ReLU"
@@ -142,9 +135,9 @@ class Sigmoid(Layer):
         # TODO: Implement the Sigmoid function.
         #  Save whatever you need into grad_cache.
         #tip: store the output in self.grad_cache["sigmoid"] 
-        # ====== YOUR CODE: ======
+        out = 1 / (1 + torch.exp(-x))
 
-        # ========================
+        self.grad_cache["sigmoid"] = out
 
         return out
 
@@ -155,9 +148,8 @@ class Sigmoid(Layer):
         """
 
         # TODO: Implement gradient w.r.t. the input x
-        # ====== YOUR CODE: ======
-
-        # ========================
+        sigmoid = self.grad_cache["sigmoid"]
+        dx = dout * sigmoid * (1 - sigmoid)
 
         return dx
 
@@ -183,9 +175,9 @@ class TanH(Layer):
 
         # TODO: Implement the tanh function.
         #  Save whatever you need into grad_cache.
-        # ====== YOUR CODE: ======
+        out = (torch.exp(x) - torch.exp(-x)) / (torch.exp(x) + torch.exp(-x))
 
-        # ========================
+        self.grad_cache["tanh"] = out
 
         return out
 
@@ -196,9 +188,7 @@ class TanH(Layer):
         """
 
         # TODO: Implement gradient w.r.t. the input x
-        # ====== YOUR CODE: ======
-
-        # ========================
+        dx = dout * (1 - self.grad_cache["tanh"] ** 2)
 
         return dx
 
@@ -222,12 +212,11 @@ class Linear(Layer):
         self.out_features = out_features
 
         # TODO: Create the weight matrix (self.w) and bias vector (self.b).
-        # Initialize the weights to zero-mean gaussian noise with a standart
+        # Initialize the weights to zero-mean gaussian noise with a standard
         # deviation of `wstd`. Init bias to zero.
         #tip: use torch.randn
-        # ====== YOUR CODE: ======
-
-        # ========================
+        self.w = torch.randn(out_features, in_features) * wstd
+        self.b = torch.zeros(out_features)
 
         # These will store the gradients
         self.dw = torch.zeros_like(self.w)
@@ -245,9 +234,7 @@ class Linear(Layer):
         """
 
         # TODO: Compute the affine transform
-        # ====== YOUR CODE: ======
-
-        # ========================
+        out = x @ self.w.T + self.b
 
         self.grad_cache["x"] = x
         return out
@@ -264,9 +251,10 @@ class Linear(Layer):
         #   - dw, the gradient of the loss with respect to w
         #   - db, the gradient of the loss with respect to b
         #  Note: You should ACCUMULATE gradients in dw and db.
-        # ====== YOUR CODE: ======
-
-        # ========================
+        
+        dx = dout @ self.w
+        self.dw += dout.T @ x
+        self.db += dout.sum(dim=0)
 
         return dx
 
@@ -305,9 +293,7 @@ class CrossEntropyLoss(Layer):
 
         # TODO: Compute the cross entropy loss using the last formula from the
         #  notebook (i.e. directly using the class scores).
-        # ====== YOUR CODE: ======
-
-        # ========================
+        loss = -x[torch.arange(N), y].mean() + torch.log(torch.exp(x).sum(dim=1)).mean()
 
         self.grad_cache["x"] = x
         self.grad_cache["y"] = y
@@ -324,9 +310,9 @@ class CrossEntropyLoss(Layer):
         N = x.shape[0]
 
         # TODO: Calculate the gradient w.r.t. the input x.
-        # ====== YOUR CODE: ======
-
-        # ========================
+        dx = torch.exp(x) / torch.exp(x).sum(dim=1, keepdim=True)
+        dx[torch.arange(N), y] -= 1
+        dx /= N
 
         return dx
 
@@ -383,9 +369,9 @@ class Sequential(Layer):
 
         # TODO: Implement the forward pass by passing each layer's output
         #  as the input of the next.
-        # ====== YOUR CODE: ======
-
-        # ========================
+        out = x
+        for layer in self.layers:
+            out = layer(out, **kw)
 
         return out
 
@@ -395,9 +381,9 @@ class Sequential(Layer):
         # TODO: Implement the backward pass.
         #  Each layer's input gradient should be the previous layer's output
         #  gradient. Behold the backpropagation algorithm in action!
-        # ====== YOUR CODE: ======
-
-        # ========================
+        din = dout
+        for layer in reversed(self.layers):
+            din = layer.backward(din)
 
         return din
 
@@ -405,9 +391,8 @@ class Sequential(Layer):
         params = []
 
         # TODO: Return the parameter tuples from all layers.
-        # ====== YOUR CODE: ======
-
-        # ========================
+        for layer in self.layers:
+            params += layer.params()
 
         return params
 
@@ -468,10 +453,14 @@ class MLP(Layer):
         else:
             raise ValueError("Unknown activation")
             
-        # TODO: Build the MLP architecture as described.
-        # ====== YOUR CODE: ======
-        
-        # ========================
+        layers = [Linear(in_features, hidden_features[0])]
+        for i in range(len(hidden_features) - 1):
+            layers.append(activation_cls())
+            #layers.append(Dropout(dropout))
+            layers.append(Linear(hidden_features[i], hidden_features[i + 1]))
+        layers.append(activation_cls())
+        #layers.append(Dropout(dropout))
+        layers.append(Linear(hidden_features[-1], num_classes))
 
         self.sequence = Sequential(*layers)
 
