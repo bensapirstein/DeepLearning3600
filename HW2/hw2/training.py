@@ -201,13 +201,20 @@ class LayerTrainer(Trainer):
         #    not a tensor) as num_correct.
         # ====== YOUR CODE: ======
         # Forward pass
+        x = X.reshape(X.shape[0], -1)
+        scores = self.model(x)
+        loss = self.loss_fn(scores, y).item()
 
         # Backward pass
-
+        self.optimizer.zero_grad()
+        dout = self.loss_fn.backward()
+        self.model.backward(dout)
         # Optimizer step
-
+        self.optimizer.step()
         # Calculate accuracy
-        
+        scores = self.model.forward(x)
+        y_pred = torch.argmax(scores, dim=1)
+        num_correct = torch.sum(y_pred == y).item()
         # ========================
 
         return BatchResult(loss, num_correct)
@@ -269,7 +276,7 @@ class TorchTrainer(Trainer):
             # Forward pass
 
             # Calculate accuracy
-
+            pass
             # ========================
 
         return BatchResult(loss, num_correct)

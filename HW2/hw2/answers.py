@@ -19,7 +19,7 @@ part1_q1 = r"""
 
 
 def part2_overfit_hp():
-    wstd, lr, reg = 0, 0, 0
+    wstd, lr, reg = 0.01, 0.01, 0.01
     # TODO: Tweak the hyperparameters until you overfit the small dataset.
     # ====== YOUR CODE: ======
     
