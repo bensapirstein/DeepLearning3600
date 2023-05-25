@@ -90,11 +90,11 @@ class MomentumSGD(Optimizer):
 
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-
+        self.velocity = [torch.zeros_like(p) for p, _ in self.params]
         # ========================
 
     def step(self):
-        for p, dp in self.params:
+        for (p, dp), v in zip(self.params, self.velocity):
             if dp is None:
                 continue
 
@@ -102,7 +102,9 @@ class MomentumSGD(Optimizer):
             # update the parameters tensor based on the velocity. Don't forget
             # to include the regularization term.
             # ====== YOUR CODE: ======
-
+            dp += self.reg * p
+            v = self.momentum * v - self.learn_rate * dp
+            p += v
             # ========================
 
 

@@ -80,7 +80,27 @@ class Trainer(abc.ABC):
             #    save the model to the file specified by the checkpoints
             #    argument.
             # ====== YOUR CODE: ======
+            train_epoch_result = self.train_epoch(dl_train, **kw)
+            test_epoch_result = self.test_epoch(dl_test, **kw)
 
+            train_loss.extend(train_epoch_result.losses)
+            train_acc.append(train_epoch_result.accuracy)
+            test_loss.extend(test_epoch_result.losses)
+            test_acc.append(test_epoch_result.accuracy)
+
+            if early_stopping is not None:
+                if best_acc is None or test_epoch_result.accuracy > best_acc:
+                    best_acc = test_epoch_result.accuracy
+                    epochs_without_improvement = 0
+                else:
+                    epochs_without_improvement += 1
+                    if epochs_without_improvement == early_stopping:
+                        break
+
+            if checkpoints is not None:
+                torch.save(self.model, checkpoints)
+
+            actual_num_epochs += 1
             # ========================
 
         return FitResult(actual_num_epochs, train_loss, train_acc, test_loss, test_acc)
@@ -225,9 +245,14 @@ class LayerTrainer(Trainer):
         # TODO: Evaluate the Layer model on one batch of data.
         # ====== YOUR CODE: ======
         # Forward pass
+        x = X.reshape(X.shape[0], -1)
+        scores = self.model(x)
+        loss = self.loss_fn(scores, y).item()
 
         # Calculate accuracy
-        
+        y_pred = torch.argmax(scores, dim=1)
+        num_correct = torch.sum(y_pred == y).item()
+    
         # ========================
 
         return BatchResult(loss, num_correct)
