@@ -248,11 +248,40 @@ class ResidualBlock(nn.Module):
         #  - Don't create layers which you don't use! This will prevent
         #    correct comparison in the test.
         # ====== YOUR CODE: ======        
-        for channel, kernel in zip(channels, kernel_sizes):
-            
-            convolution = nn.Conv2d(in_channels, channel, kernel)
-            
+        layers = []
+        start_channels = in_channels
+        for out_channels, kernel_size in zip(channels, kernel_sizes):
+            # Create a conv layer with the given type and parameters.
+            conv = nn.Conv2d(in_channels, out_channels, kernel_size, padding=kernel_size//2, bias=True)
+            layers.append(conv)
 
+            # Create a dropout layer with the given parameters.
+            if dropout > 0:
+                layers.append(nn.Dropout(p=dropout))
+
+            # Create a batchnorm layer with the given parameters.
+            if batchnorm:
+                layers.append(nn.BatchNorm2d(out_channels))
+
+            # Create an activation layer with the given type and parameters.
+            activation = ACTIVATIONS[activation_type](**activation_params)
+            layers.append(activation)
+
+            # Update the number of input channels for the next conv.
+            in_channels = out_channels
+
+        # Create the last conv layer.
+        layers.append(nn.Conv2d(in_channels, channels[-1], 1, bias=True))
+
+        # Create the main path.
+        self.main_path = nn.Sequential(*layers)
+
+        # Create the shortcut path.
+        if start_channels != channels[-1]:
+            self.shortcut_path = nn.Sequential(nn.Conv2d(start_channels, channels[-1], 1, bias=False))
+        else:
+            self.shortcut_path = nn.Sequential()
+        # ========================
 
 
     def forward(self, x):
