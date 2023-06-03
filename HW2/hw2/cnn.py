@@ -64,6 +64,16 @@ class ConvClassifier(nn.Module):
         self.feature_extractor = self._make_feature_extractor()
         self.classifier = self._make_classifier()
 
+    def make_conv_act_layers(self, in_channels, out_channels):
+        # Create a Conv2d layer with the given parameters.
+        conv = nn.Conv2d(in_channels, out_channels, **self.conv_params,
+        )
+
+        # Create an activation layer with the given type and parameters.
+        activation = ACTIVATIONS[self.activation_type](**self.activation_params)
+
+        return conv, activation
+
     def _make_feature_extractor(self):
         in_channels, in_h, in_w, = tuple(self.in_size)
 
@@ -77,6 +87,33 @@ class ConvClassifier(nn.Module):
         #  Note: If N is not divisible by P, then N mod P additional
         #  CONV->ACTs should exist at the end, without a POOL after them.
         # ====== YOUR CODE: ======
+        # Loop over groups of P output channels and create a block from them.
+        N = len(self.channels)
+        P = self.pool_every
+        for i in range(0, N, P):
+            channels = self.channels[i : i + P]
+            for out_channels in channels:
+                # Create a conv layer with the given type and parameters.
+                conv, activation = self.make_conv_act_layers(in_channels, out_channels)
+                layers += [conv, activation]
+
+                # Update the number of input channels for the next conv.
+                in_channels = out_channels
+
+            # Create a pooling layer with the given type and parameters.
+            pooling = POOLINGS[self.pooling_type](**self.pooling_params)
+            layers.append(pooling)
+
+        if N % P != 0:
+            # Create the remaining convolutions.
+            channels = self.channels[N - (N % P) :]
+            for out_channels in channels:
+                # Create a conv layer with the given type and parameters.
+                conv, activation = self.make_conv_act_layers(in_channels, out_channels)
+                layers += [conv, activation]
+
+                # Update the number of input channels for the next conv.
+                in_channels = out_channels
 
         # ========================
         seq = nn.Sequential(*layers)
@@ -91,6 +128,15 @@ class ConvClassifier(nn.Module):
         rng_state = torch.get_rng_state()
         try:
             # ====== YOUR CODE: ======
+            # Create a random tensor with the same shape as the input tensor.
+            x = torch.randn(1, *self.in_size)
+
+            # Pass the tensor through the feature extractor.
+            x = self.feature_extractor(x)
+            x = torch.flatten(x, 1)
+
+            # Return the number of features.
+            return x.shape[1]
 
             # ========================
         finally:
@@ -106,7 +152,24 @@ class ConvClassifier(nn.Module):
         #  (FC -> ACT)*M -> Linear
         #  The last Linear layer should have an output dim of out_classes.
         # ====== YOUR CODE: ======
+        in_channels = n_features
 
+        # Create Fully Connected layers.
+        for hidden_dim in self.hidden_dims:
+            # Create a Linear layer with the given parameters.
+            linear = nn.Linear(in_channels, hidden_dim)
+
+            # Create an activation layer with the given type and parameters.
+            activation = ACTIVATIONS[self.activation_type](**self.activation_params)
+
+            layers += [linear, activation]
+
+            # Update the number of input channels for the next conv.
+            in_channels = hidden_dim
+
+        # Create the last Linear layer.
+        linear = nn.Linear(in_channels, self.out_classes)
+        layers.append(linear)
         # ========================
 
         seq = nn.Sequential(*layers)
@@ -117,6 +180,14 @@ class ConvClassifier(nn.Module):
         #  Extract features from the input, run the classifier on them and
         #  return class scores.
         # ====== YOUR CODE: ======
+        # Pass the input through the feature extractor.
+        x = self.feature_extractor(x) 
+
+        # Flatten the output of the feature extractor.
+        x = torch.flatten(x, 1)
+        
+        # Pass the flattened output through the classifier.
+        out = self.classifier(x)
 
         # ========================
         return out
@@ -176,9 +247,13 @@ class ResidualBlock(nn.Module):
         #  - For simplicity of implementation, assume kernel sizes are odd.
         #  - Don't create layers which you don't use! This will prevent
         #    correct comparison in the test.
-        # ====== YOUR CODE: ======
+        # ====== YOUR CODE: ======        
+        for channel, kernel in zip(channels, kernel_sizes):
+            
+            convolution = nn.Conv2d(in_channels, channel, kernel)
+            
 
-        # ========================
+
 
     def forward(self, x):
         out = self.main_path(x)
