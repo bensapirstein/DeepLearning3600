@@ -239,13 +239,13 @@ class ResidualBlock(nn.Module):
 
             if i < len(channels) - 1:
 
+                # Create a dropout layer with the given parameters.
+                if dropout > 0:
+                    layers.append(nn.Dropout2d(p=dropout))
+
                 # Create a batchnorm layer with the given parameters.
                 if batchnorm:
                     layers.append(nn.BatchNorm2d(out_channels))
-
-                # Create a dropout layer with the given parameters.
-                if dropout > 0:
-                    layers.append(nn.Dropout(p=dropout))
 
                 # Create an activation layer with the given type and parameters.
                 activation = ACTIVATIONS[activation_type](**activation_params)
