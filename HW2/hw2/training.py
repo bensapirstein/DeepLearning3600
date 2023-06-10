@@ -81,10 +81,10 @@ class Trainer(abc.ABC):
             #    argument.
             # ====== YOUR CODE: ======
             train_epoch_result = self.train_epoch(dl_train, **kw)
-            test_epoch_result = self.test_epoch(dl_test, **kw)
-
             train_loss.extend(train_epoch_result.losses)
             train_acc.append(train_epoch_result.accuracy)
+            
+            test_epoch_result = self.test_epoch(dl_test, **kw)
             test_loss.extend(test_epoch_result.losses)
             test_acc.append(test_epoch_result.accuracy)
 
@@ -294,7 +294,7 @@ class TorchTrainer(Trainer):
         
         # ========================
 
-        return BatchResult(loss, num_correct)
+        return BatchResult(loss.item(), num_correct)
 
     def test_batch(self, batch) -> BatchResult:
         X, y = batch

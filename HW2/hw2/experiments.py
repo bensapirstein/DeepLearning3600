@@ -82,7 +82,6 @@ def run_experiment(
     test_loader = DataLoader(ds_test, batch_size=bs_test, shuffle=False)
     # Create model, loss and optimizer instances
     channels = [channel for channel in filters_per_layer for _ in range(layers_per_block)]
-    print(channels)
     conv_params = dict(kernel_size=3, stride=1, padding=1)
     activation_type = 'lrelu'
     activation_params = dict(negative_slope=0.01)
@@ -102,14 +101,13 @@ def run_experiment(
         pooling_type=pooling_type,
         pooling_params=pooling_params
     )
-    #model.to(device)
+
     loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=reg)
     # Train
     trainer = training.TorchTrainer(model, loss_fn, optimizer, device)
     fit_res = trainer.fit(dl_train=train_loader, dl_test=test_loader, 
-                          num_epochs=epochs, checkpoints=checkpoints, **kw)
-
+                          num_epochs=epochs, checkpoints=checkpoints, max_batches=batches, **kw)
 
     # ========================
 
