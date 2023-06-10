@@ -64,16 +64,6 @@ class ConvClassifier(nn.Module):
         self.feature_extractor = self._make_feature_extractor()
         self.classifier = self._make_classifier()
 
-    def make_conv_act_layers(self, in_channels, out_channels):
-        # Create a Conv2d layer with the given parameters.
-        conv = nn.Conv2d(in_channels, out_channels, **self.conv_params,
-        )
-
-        # Create an activation layer with the given type and parameters.
-        activation = ACTIVATIONS[self.activation_type](**self.activation_params)
-
-        return conv, activation
-
     def _make_feature_extractor(self):
         in_channels, in_h, in_w, = tuple(self.in_size)
 
@@ -93,27 +83,19 @@ class ConvClassifier(nn.Module):
         for i in range(0, N, P):
             channels = self.channels[i : i + P]
             for out_channels in channels:
-                # Create a conv layer with the given type and parameters.
-                conv, activation = self.make_conv_act_layers(in_channels, out_channels)
-                layers += [conv, activation]
+                # Create a Conv2d layer with the given parameters.
+                layers.append(nn.Conv2d(in_channels, out_channels, **self.conv_params))
+
+                # Create an activation layer with the given type and parameters.
+                layers.append(ACTIVATIONS[self.activation_type](**self.activation_params))
 
                 # Update the number of input channels for the next conv.
                 in_channels = out_channels
 
-            # Create a pooling layer with the given type and parameters.
-            pooling = POOLINGS[self.pooling_type](**self.pooling_params)
-            layers.append(pooling)
-
-        if N % P != 0:
-            # Create the remaining convolutions.
-            channels = self.channels[N - (N % P) :]
-            for out_channels in channels:
-                # Create a conv layer with the given type and parameters.
-                conv, activation = self.make_conv_act_layers(in_channels, out_channels)
-                layers += [conv, activation]
-
-                # Update the number of input channels for the next conv.
-                in_channels = out_channels
+            if i + P <= N:
+                # Create a pooling layer with the given type and parameters.
+                pooling = POOLINGS[self.pooling_type](**self.pooling_params)
+                layers.append(pooling)
 
         # ========================
         seq = nn.Sequential(*layers)
@@ -250,28 +232,27 @@ class ResidualBlock(nn.Module):
         # ====== YOUR CODE: ======        
         layers = []
         start_channels = in_channels
-        for out_channels, kernel_size in zip(channels, kernel_sizes):
+        for i, (out_channels, kernel_size) in enumerate(zip(channels, kernel_sizes)):
             # Create a conv layer with the given type and parameters.
             conv = nn.Conv2d(in_channels, out_channels, kernel_size, padding=kernel_size//2, bias=True)
             layers.append(conv)
 
-            # Create a dropout layer with the given parameters.
-            if dropout > 0:
-                layers.append(nn.Dropout(p=dropout))
+            if i < len(channels) - 1:
 
-            # Create a batchnorm layer with the given parameters.
-            if batchnorm:
-                layers.append(nn.BatchNorm2d(out_channels))
+                # Create a batchnorm layer with the given parameters.
+                if batchnorm:
+                    layers.append(nn.BatchNorm2d(out_channels))
 
-            # Create an activation layer with the given type and parameters.
-            activation = ACTIVATIONS[activation_type](**activation_params)
-            layers.append(activation)
+                # Create a dropout layer with the given parameters.
+                if dropout > 0:
+                    layers.append(nn.Dropout(p=dropout))
+
+                # Create an activation layer with the given type and parameters.
+                activation = ACTIVATIONS[activation_type](**activation_params)
+                layers.append(activation)
 
             # Update the number of input channels for the next conv.
             in_channels = out_channels
-
-        # Create the last conv layer.
-        layers.append(nn.Conv2d(in_channels, channels[-1], 1, bias=True))
 
         # Create the main path.
         self.main_path = nn.Sequential(*layers)
@@ -315,9 +296,11 @@ class ResidualBottleneckBlock(ResidualBlock):
             Values should be odd numbers.
         :param kwargs: Any additional arguments supported by ResidualBlock.
         """
-        # ====== YOUR CODE: ======
-
-        # ========================
+        super().__init__(
+            in_out_channels,
+            [inner_channels[0], *inner_channels, in_out_channels],
+            [1, *inner_kernel_sizes, 1],
+            **kwargs)
 
 
 class ResNetClassifier(ConvClassifier):
@@ -357,6 +340,22 @@ class ResNetClassifier(ConvClassifier):
         #  - Use your own ResidualBlock implementation.
         # ====== YOUR CODE: ======
         # Loop over groups of P output channels and create a block from them.
+        N = len(self.channels)
+        P = self.pool_every
+        for i in range(0, N, P):
+            channels = self.channels[i : i + P]
+            kernel_sizes = [3] * len(channels)
+            layers.append(ResidualBlock(
+                in_channels=in_channels, channels=channels, 
+                kernel_sizes=kernel_sizes, batchnorm=self.batchnorm,
+                dropout=self.dropout, activation_type=self.activation_type,
+                activation_params=self.activation_params))
+
+            if i + P < N:
+                pooling = POOLINGS[self.pooling_type](**self.pooling_params)
+                layers.append(pooling)
+
+            in_channels = channels[-1]
 
         # ========================
         seq = nn.Sequential(*layers)
