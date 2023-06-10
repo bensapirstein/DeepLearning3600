@@ -78,9 +78,32 @@ def run_experiment(
     fit_res = None
     # ====== YOUR CODE: ======
     # Data - use DataLoader
-    
+    train_loader = DataLoader(ds_train, batch_size=bs_train, shuffle=True)
+    test_loader = DataLoader(ds_test, batch_size=bs_test, shuffle=False)
     # Create model, loss and optimizer instances
-    
+    channels = [channel for channel in filters_per_layer for _ in range(layers_per_block)]
+    conv_params = dict(kernel_size=3, stride=1, padding=1)
+    pooling_params = dict(kernel_size=2)
+    x0, _ = ds_train[0]
+
+    model = model_cls(
+        in_size=x0.shape,
+        out_classes=10,
+        channels=channels,
+        pool_every=pool_every,
+        hidden_dims=hidden_dims,
+        conv_params=conv_params,
+        pooling_params=pooling_params
+    )
+    model.to(device)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=reg)
+    # Train
+    trainer = training.TorchTrainer(model, loss_fn, optimizer, device)
+    fit_res = trainer.fit(dl_train=train_loader, dl_test=test_loader, 
+                          num_epochs=epochs, checkpoints=checkpoints, **kw)
+
+
     # ========================
 
     save_experiment(run_name, out_dir, cfg, fit_res)
