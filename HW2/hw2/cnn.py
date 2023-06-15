@@ -726,10 +726,15 @@ class ResNetClassifier(ConvClassifier):
         return seq
 
 class YourCodeNet(ConvClassifier):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, dropout_rate=0.5, pool_kernel = 2, stride = 2, batch_norm=True, kernel_size = 3, **kwargs):
         """
         See ConvClassifier.__init__
         """
+        self.kernel_size = kernel_size
+        self.pool_kernel = pool_kernel
+        self.stride = stride
+        self.dropout_rate = dropout_rate
+        self.batch_norm = batch_norm
         super().__init__(*args, **kwargs)
 
     def _make_feature_extractor(self):
@@ -740,22 +745,24 @@ class YourCodeNet(ConvClassifier):
                 nn.Conv2d(
                     in_channels,
                     out_channels,
-                    kernel_size=3,
+                    self.kernel_size,
                     padding=1,
                     bias=False
                 )
             )
+
+            if self.batch_norm:
+                layers.append(nn.BatchNorm2d(out_channels))
+
             layers.append(nn.ReLU())
 
             if i > 0 and i % self.pool_every == 0:
-                layers.append(nn.MaxPool2d(kernel_size=2, stride=2))
+                layers.append(nn.MaxPool2d(self.pool_kernel, self.stride))
 
             in_channels = out_channels
-
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        features = self.feature_extractor(x)
-        flattened = torch.flatten(features, 1)
-        output = self.classifier(flattened)
-        return output
+        flattened = torch.flatten(self.feature_extractor(x), 1)
+        if self.dropout_rate > 0: flattened = nn.Dropout(self.dropout_rate)(flattened)
+        return self.classifier(flattened)
