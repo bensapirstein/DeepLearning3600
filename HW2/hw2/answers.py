@@ -82,8 +82,11 @@ It could result in following a promising gradiant for several important features
 # Part 3 answers
 
 part3_q1 = r"""
-**Your answer:**
+A regular block performing two convolutions with $3\times3$ kernels on an input channel of 256 has $2 \cdot ((3^{2}\cdot 256 +1)\cdot 256)  = 1,180,160$ parameters, while the bottleneck block has $(1^{2}\cdot 256+1)\cdot 64+(3^{2}\cdot 64+1)\cdot 64+(1^{2}\cdot 64+1)\cdot 256  = 70,016$ parameters because the bottleneck block introduces additional methods to reduce the parameter count. It involves a $1\times1$ convolution for channel dimension projection, following which the compact representation (a smaller feature map) is operated on by a $3\times3$ convolution (like the regular block) to extract spatial information, and it concludes with another $1\times1$ convolution to restore the original 256 channels. We can observe that that there is a significant reduction in the parameter count.
 
+The bottleneck block also requires fewer operations for floating point operations compared to the regular block as it processes the input through fewer convolutions, which reduces the computational cost. Assuming an input size of $(256, H, W)$, we consider the number of floating-point operations involved. The regular block requires $(1,180,160 + 256) \times H \times W$ operations, while the bottleneck block requires $(70,016 + 256) \times H \times W$ operations.
+
+The bottleneck block also affects both the spatial dimensions and the number of feature maps of the input, while the regular block only impacts the input spatially. By projecting the channels to a lower dimension and then back to the original dimension, the bottleneck block allows the network to capture spatial and cross-feature map information more effectively, despite having fewer parameters. This can reduce computational complexity and maintain the network's representation ability. Overall, the bottleneck block demonstrates a substantial reduction in parameters and complexity compared to the regular block.
 """
 
 part3_q2 = r"""
