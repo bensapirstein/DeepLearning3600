@@ -725,44 +725,119 @@ class ResNetClassifier(ConvClassifier):
         seq = nn.Sequential(*layers)
         return seq
 
-class YourCodeNet(ConvClassifier):
-    def __init__(self, *args, dropout_rate=0.5, pool_kernel = 2, stride = 2, batch_norm=True, kernel_size = 3, **kwargs):
-        """
-        See ConvClassifier.__init__
-        """
-        self.kernel_size = kernel_size
-        self.pool_kernel = pool_kernel
-        self.stride = stride
-        self.dropout_rate = dropout_rate
-        self.batch_norm = batch_norm
-        super().__init__(*args, **kwargs)
 
-    def _make_feature_extractor(self):
-        layers = []
-        in_channels = self.in_size[0]
-        for i, out_channels in enumerate(self.channels):
-            layers.append(
-                nn.Conv2d(
-                    in_channels,
-                    out_channels,
-                    self.kernel_size,
-                    padding=1,
-                    bias=False
-                )
-            )
+class SkipConnection(nn.Module):
+    """
+    A skip connection module 
+    """
 
-            if self.batch_norm:
-                layers.append(nn.BatchNorm2d(out_channels))
+    def __init__(self,
+                 main_path,
+                 in_channels,
+                 out_channels):
+        super().__init__()
+        self.main_path = main_path
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.shortcut = nn.Identity() if in_channels == out_channels else nn.Conv2d(in_channels=in_channels,
+                                                                                    out_channels=out_channels,
+                                                                                    kernel_size=1)
 
-            layers.append(nn.ReLU())
+    def forward(self, X):
+        return self.main_path(X) + self.shortcut(X)
 
-            if i > 0 and i % self.pool_every == 0:
-                layers.append(nn.MaxPool2d(self.pool_kernel, self.stride))
 
-            in_channels = out_channels
-        return nn.Sequential(*layers)
+class InceptionBlock(nn.Module):
+    """
+    Generate a general purpose Inception block
+    """
+
+    def __init__(
+            self,
+            in_channels: int,
+            out_channels: int,
+            kernel_sizes: Sequence[int] = [1, 3, 5],
+            batchnorm: bool = False,
+            dropout: float = 0.0,
+            activation_type: str = "relu",
+            activation_params: dict = {},
+            pooling_type: str = "max",
+            **kwargs,
+    ):
+        super().__init__()
+        assert (out_channels % 4 == 0)
+        out_channels = int(out_channels / 4)
+        self.wide_layer = []
+        pooling = [
+            POOLINGS[pooling_type](kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(in_channels=in_channels,
+                      out_channels=out_channels,
+                      kernel_size=1)]
+        self.wide_layer += [pooling]
+        self.wide_layer += [[nn.Conv2d(in_channels=in_channels,
+                                       out_channels=out_channels,
+                                       kernel_size=kernel_size,
+                                       padding=int((kernel_size - 1) / 2),
+                                       bias=True)] for kernel_size in kernel_sizes]
+        if dropout > 0:
+            self.wide_layer = [conv + [nn.Dropout2d(p=dropout)] for conv in self.wide_layer]
+        if batchnorm:
+            self.wide_layer = [conv + [nn.BatchNorm2d(num_features=out_channels)] for conv in self.wide_layer]
+        self.wide_layer = [nn.Sequential(*filt) for filt in self.wide_layer]
+        self.wide_layer = nn.ModuleList(self.wide_layer)
+        self.activation_layer = ACTIVATIONS[activation_type](**activation_params)
 
     def forward(self, x):
-        flattened = torch.flatten(self.feature_extractor(x), 1)
-        if self.dropout_rate > 0: flattened = nn.Dropout(self.dropout_rate)(flattened)
-        return self.classifier(flattened)
+        output = [conv_filter(x) for conv_filter in self.wide_layer]
+        activated = [self.activation_layer(element) for element in output]
+        return torch.cat(activated, 1)
+
+class YourCodeNet(ConvClassifier):
+    def __init__(
+            self,
+            in_size,
+            out_classes,
+            channels,
+            hidden_dims,
+            dilation_params={},
+            pool_every=2,
+            batchnorm=False,
+            dropout=0.0,
+            pooling_params={'kernel_size': 2},
+            pooling_type="avg",
+            **kwargs,
+    ):
+        """
+        See arguments of ConvClassifier & ResidualBlock.
+        """
+        self.pooling_params = pooling_params
+        self.dilation_params = dilation_params
+        self.dilate_every = 4
+        self.batchnorm = batchnorm
+        self.dropout = dropout
+        self.in_size = in_size
+        super().__init__(
+            in_size, out_classes, channels, pool_every, hidden_dims, pooling_type=pooling_type,
+            pooling_params=pooling_params, **kwargs
+        )
+
+    def _make_feature_extractor(self):
+        in_channels, _, _, = tuple(self.in_size)
+
+        layers = []
+        cur_in_channels = in_channels
+        i = 0
+        while i < len(self.channels):
+            layers += [SkipConnection(InceptionBlock(in_channels=cur_in_channels,
+                                                     out_channels=self.channels[i],
+                                                     batchnorm=True,
+                                                     activation_type="lrelu",
+                                                     activation_params={'negative_slope': 0.01},
+                                                     pooling_type="max"),
+                                      in_channels=cur_in_channels, out_channels=self.channels[i])]
+            if i % self.pool_every == 0:
+                layers += [POOLINGS[self.pooling_type](**self.pooling_params)]
+            i += 1
+            cur_in_channels = self.channels[i - 1]
+        seq = nn.Sequential(*layers)
+        return seq
