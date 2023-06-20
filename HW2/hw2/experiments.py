@@ -78,7 +78,7 @@ def run_experiment(
     fit_res = None
     # ====== YOUR CODE: ======
     # Data - use DataLoader
-    train_loader = DataLoader(ds_train, batch_size=bs_train, shuffle=False)
+    train_loader = DataLoader(ds_train, batch_size=bs_train, shuffle=True)
     test_loader = DataLoader(ds_test, batch_size=bs_test, shuffle=False)
     # Create model, loss and optimizer instances
     channels = [channel for channel in filters_per_layer for _ in range(layers_per_block)]
