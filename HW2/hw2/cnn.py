@@ -95,12 +95,10 @@ class ConvClassifier(nn.Module):
 
             if i + P <= N:
                 # Create a pooling layer with the given type and parameters.
-                pooling = POOLINGS[self.pooling_type](**self.pooling_params)
-                layers.append(pooling)
+                layers.append(POOLINGS[self.pooling_type](**self.pooling_params))
 
         # ========================
-        seq = nn.Sequential(*layers)
-        return seq
+        return nn.Sequential(*layers)
 
     def _n_features(self) -> int:
         """
@@ -151,12 +149,10 @@ class ConvClassifier(nn.Module):
             in_channels = hidden_dim
 
         # Create the last Linear layer.
-        linear = nn.Linear(in_channels, self.out_classes)
-        layers.append(linear)
+        layers.append(nn.Linear(in_channels, self.out_classes))
         # ========================
 
-        seq = nn.Sequential(*layers)
-        return seq
+        return nn.Sequential(*layers)
 
     def forward(self, x):
         # TODO: Implement the forward pass.
@@ -164,16 +160,11 @@ class ConvClassifier(nn.Module):
         #  return class scores.
         # ====== YOUR CODE: ======
         # Pass the input through the feature extractor.
-        x = self.feature_extractor(x) 
-
         # Flatten the output of the feature extractor.
-        x = torch.flatten(x, 1)
-        
-        # Pass the flattened output through the classifier.
-        out = self.classifier(x)
-
+        x = torch.flatten(self.feature_extractor(x), 1)
         # ========================
-        return out
+        # Pass the flattened output through the classifier.
+        return self.classifier(x)
 
 
 class ResidualBlock(nn.Module):
@@ -249,8 +240,7 @@ class ResidualBlock(nn.Module):
                     layers.append(nn.BatchNorm2d(out_channels))
 
                 # Create an activation layer with the given type and parameters.
-                activation = ACTIVATIONS[activation_type](**activation_params)
-                layers.append(activation)
+                layers.append(ACTIVATIONS[activation_type](**activation_params))
 
             # Update the number of input channels for the next conv.
             in_channels = out_channels
@@ -259,18 +249,14 @@ class ResidualBlock(nn.Module):
         self.main_path = nn.Sequential(*layers)
 
         # Create the shortcut path.
-        if start_channels != channels[-1]:
-            self.shortcut_path = nn.Sequential(nn.Conv2d(start_channels, channels[-1], 1, bias=False))
-        else:
-            self.shortcut_path = nn.Sequential()
+        self.shortcut_path = nn.Sequential(nn.Conv2d(start_channels, channels[-1], 1, bias=False)) if start_channels != channels[-1] else: nn.Sequential()
         # ========================
 
 
     def forward(self, x):
         out = self.main_path(x)
         out += self.shortcut_path(x)
-        out = torch.relu(out)
-        return out
+        return torch.relu(out)
 
 
 class ResidualBottleneckBlock(ResidualBlock):
@@ -353,14 +339,12 @@ class ResNetClassifier(ConvClassifier):
                 activation_params=self.activation_params))
 
             if i + P < N:
-                pooling = POOLINGS[self.pooling_type](**self.pooling_params)
-                layers.append(pooling)
+                layers.append(POOLINGS[self.pooling_type](**self.pooling_params))
 
             in_channels = channels[-1]
 
         # ========================
-        seq = nn.Sequential(*layers)
-        return seq
+        return nn.Sequential(*layers)
 
 class YourCodeNet(ConvClassifier):
     def __init__(self, *args, dropout_rate=0.5, pool_kernel=2, stride=2, batch_norm=True, kernel_sizes=[1, 3, 5], kernel_size=3, **kwargs):
@@ -382,14 +366,8 @@ class YourCodeNet(ConvClassifier):
         i = 0
         while i < len(self.channels):
             layers.append(
-                self._make_skip_connection(self._make_inception_block(in_channels=cur_in_channels, out_channels=self.channels[i],), in_channels=cur_in_channels, out_channels=self.channels[i],
-                  
-                )
-            )
-
-            if i % self.pool_every == 0:
-                layers.append(nn.MaxPool2d(kernel_size=self.pool_kernel, stride=self.stride))
-
+                self._make_skip_connection(self._make_inception_block(in_channels=cur_in_channels, out_channels=self.channels[i],), in_channels=cur_in_channels, out_channels=self.channels[i],))
+            if i % self.pool_every == 0: layers.append(nn.MaxPool2d(kernel_size=self.pool_kernel, stride=self.stride))
             i += 1
             cur_in_channels = self.channels[i - 1]
 
