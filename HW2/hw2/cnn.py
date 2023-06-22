@@ -249,7 +249,7 @@ class ResidualBlock(nn.Module):
         self.main_path = nn.Sequential(*layers)
 
         # Create the shortcut path.
-        self.shortcut_path = nn.Sequential(nn.Conv2d(start_channels, channels[-1], 1, bias=False)) if start_channels != channels[-1] else: nn.Sequential()
+        self.shortcut_path = nn.Sequential(nn.Conv2d(start_channels, channels[-1], 1, bias=False)) if start_channels != channels[-1] else nn.Sequential()
         # ========================
 
 
